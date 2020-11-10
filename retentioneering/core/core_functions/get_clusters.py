@@ -6,7 +6,7 @@
 import numpy as np
 
 from retentioneering.visualization import plot_clusters
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.mixture import GaussianMixture
 
 
@@ -252,6 +252,7 @@ def _create_cluster_mapping(self, ids):
 def _kmeans(data, *,
            n_clusters=8,
            random_state=0,
+           use_minibatch=True,
            **kwargs):
     """
     Finds cluster of users in data.
@@ -278,8 +279,14 @@ def _kmeans(data, *,
     -------
     np.array
     """
-    km = KMeans(random_state=random_state,
-                n_clusters=n_clusters)
+    if use_minibatch:
+        km = MiniBatchKMeans(
+            random_state=random_state,
+            n_clusters=n_clusters
+        )
+    else:
+        km = KMeans(random_state=random_state,
+                    n_clusters=n_clusters)
 
     cl = km.fit_predict(data.values)
 

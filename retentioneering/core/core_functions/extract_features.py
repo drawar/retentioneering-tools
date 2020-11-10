@@ -81,6 +81,20 @@ def _embedder(data, *,
     """
     index_col = data.rete.retention_config['user_col']
     event_col = data.rete.retention_config['event_col']
+    time_col = data.rete.retention_config['event_time_col']
+    time_on_page_col = data.rete.retention_config['event_dwell_time_col']
+
+    total_time_on_page = data.groupby([index_col, event_col]).sum().reset_index()
+    total_time_on_page[time_on_page_col] = total_time_on_page[time_on_page_col].fillna(0).astype("int64")
+    total_time_on_page = total_time_on_page.pivot_table(time_on_page_col, [index_col], event_col)
+    total_time_on_page = total_time_on_page / 1000
+    total_time_on_page.columns = total_time_on_page.columns.tolist()
+
+    mean_time_on_page = data.groupby([index_col, event_col]).mean().reset_index()
+    mean_time_on_page[time_on_page_col] = mean_time_on_page[time_on_page_col].fillna(0).astype("int64")
+    mean_time_on_page = mean_time_on_page.pivot_table(time_on_page_col, [index_col], event_col)
+    mean_time_on_page = mean_time_on_page / 1000
+    mean_time_on_page.columns = mean_time_on_page.columns.tolist()
 
     corpus = data.groupby(index_col)[event_col].apply(
         lambda x: '~~'.join([el.lower() for el in x])
@@ -101,6 +115,11 @@ def _embedder(data, *,
     # normalize if frequency:
     if feature_type == 'frequency':
         vec_data = vec_data.div(vec_data.sum(axis=1), axis=0).fillna(0)
+
+    if feature_type == 'total_time':
+        vec_data = total_time_on_page
+    elif feature_type == 'mean_time':
+        vec_data = mean_time_on_page
 
     setattr(vec_data.rete, 'datatype', 'features')
     return vec_data
