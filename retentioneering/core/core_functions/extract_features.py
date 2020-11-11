@@ -100,26 +100,26 @@ def _embedder(data, *,
         lambda x: '~~'.join([el.lower() for el in x])
     )
 
-    if feature_type == 'tfidf':
-        vectorizer = TfidfVectorizer(ngram_range=ngram_range, token_pattern = '[^~]+').fit(corpus)
-    elif feature_type in {'count', 'frequency'}:
-        vectorizer = CountVectorizer(ngram_range=ngram_range, token_pattern='[^~]+').fit(corpus)
-    elif feature_type == 'binary':
-        vectorizer = CountVectorizer(ngram_range=ngram_range, token_pattern='[^~]+', binary=True).fit(corpus)
-
-    cols = [dict_key[0] for dict_key in sorted(vectorizer.vocabulary_.items(), key=lambda x: x[1])]
-    vec_data = pd.DataFrame(index=sorted(data[index_col].unique()),
-                            columns=cols,
-                            data=vectorizer.transform(corpus).todense())
-
-    # normalize if frequency:
-    if feature_type == 'frequency':
-        vec_data = vec_data.div(vec_data.sum(axis=1), axis=0).fillna(0)
-
     if feature_type == 'total_time':
         vec_data = total_time_on_page
     elif feature_type == 'mean_time':
         vec_data = mean_time_on_page
+    else:
+        if feature_type == 'tfidf':
+            vectorizer = TfidfVectorizer(ngram_range=ngram_range, token_pattern = '[^~]+').fit(corpus)
+        elif feature_type in {'count', 'frequency'}:
+            vectorizer = CountVectorizer(ngram_range=ngram_range, token_pattern='[^~]+').fit(corpus)
+        elif feature_type == 'binary':
+            vectorizer = CountVectorizer(ngram_range=ngram_range, token_pattern='[^~]+', binary=True).fit(corpus)
+
+        cols = [dict_key[0] for dict_key in sorted(vectorizer.vocabulary_.items(), key=lambda x: x[1])]
+        vec_data = pd.DataFrame(index=sorted(data[index_col].unique()),
+                                columns=cols,
+                                data=vectorizer.transform(corpus).todense())
+
+        # normalize if frequency:
+        if feature_type == 'frequency':
+            vec_data = vec_data.div(vec_data.sum(axis=1), axis=0).fillna(0)
 
     setattr(vec_data.rete, 'datatype', 'features')
     return vec_data
